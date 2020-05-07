@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+fail() {
+  echo -e "\e[31mFail:\e[m $*"
+  exit 1
+}
+
+install_snyk() {
+  local install_type=$1
+  local version=$2
+  local install_path=$3
+
+  if [ "$install_type" != "version" ]; then
+    fail "asdf-snyk supports release installs only"
+  fi
+
+  case "$OSTYPE" in
+    darwin*) platform="macos" ;;
+    linux*) platform="linux" ;;
+    *) fail "Unsupported OS type" ;;
+  esac
+
+  local download_url="https://github.com/snyk/snyk/releases/download/v${version}/snyk-${platform}"
+  local source_path="${install_path}/snyk"
+  local destination_path="${install_path}/bin"
+
+  (
+    echo "Downloading Snyk CLI $version..."
+    curl --silent --location --output "$source_path" -C - "$download_url" || fail "Could not download Snyk CLI $version"
+    chmod +x "$source_path"
+    mkdir -p "$destination_path"
+    mv "$source_path" "$destination_path"
+    echo "Successfuly installed Snyk CLI $version"
+  ) || (
+    rm -rf "$install_path"
+    fail "Failed to install Snyk CLI $version"
+  )
+}
+
+install_snyk "$ASDF_INSTALL_TYPE" "$ASDF_INSTALL_VERSION" "$ASDF_INSTALL_PATH"
